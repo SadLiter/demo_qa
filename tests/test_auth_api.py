@@ -25,7 +25,7 @@ class TestAuthAPI:
 
     def test_register_invalid_user(self, api_manager, register_user_data):
         """
-        Checks successful user registration.
+        Checks user registration with invalid password.
         """
         register_user_data["password"] = "123"
         response = api_manager.auth_api.register_user(register_user_data, expected_status=HTTPStatus.BAD_REQUEST)
