@@ -1,5 +1,6 @@
 from constants import LOGIN_ENDPOINT, REGISTER_ENDPOINT, AUTH_API_BASE_URL
 from requester.custom_requester import CustomRequester
+from http import HTTPStatus
 
 
 class AuthAPI(CustomRequester):
@@ -10,7 +11,7 @@ class AuthAPI(CustomRequester):
     def __init__(self, session):
         super().__init__(session=session, base_url=AUTH_API_BASE_URL)
 
-    def register_user(self, user_data, expected_status=200):
+    def register_user(self, user_data, expected_status=HTTPStatus.CREATED):
         """
         Registers a new user.
         :param user_data: User data.
@@ -24,7 +25,7 @@ class AuthAPI(CustomRequester):
             expected_status=expected_status
         )
 
-    def login_user(self, login_data, expected_status=200):
+    def login_user(self, login_data, expected_status=HTTPStatus.OK):
         """
         Logs in a user.
         :param login_data: Login credentials.

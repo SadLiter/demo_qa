@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 import requests
 from faker import Faker
@@ -27,7 +29,7 @@ def super_admin_token(api_manager):
     Fixture for obtaining the SUPER_ADMIN token.
     """
     response = api_manager.auth_api.login_user(AUTH_DATA)
-    assert response.status_code == 200, f"Failed to login: {response.text}"
+    assert response.status_code == HTTPStatus.OK, f"Failed to login: {response.text}"
     return response.json()["accessToken"]
 
 
@@ -46,6 +48,23 @@ def movie_data():
         "published": faker.boolean(chance_of_getting_true=50),
         "genreId": faker.random_int(min=1, max=10)
     }
+
+
+@pytest.fixture(scope="function")
+def register_user_data():
+    """
+    Fixture for generating dynamic user data.
+    """
+    faker = Faker()
+    user_data = {
+        "email": faker.email(),
+        "fullName": faker.name(),
+        "password": faker.password(length=12, special_chars=True, digits=True, upper_case=True, lower_case=True),
+        "passwordRepeat": None
+    }
+
+    user_data["passwordRepeat"] = user_data["password"]
+    return user_data
 
 
 @pytest.fixture(scope="function")

@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from constants import MOVIES_API_BASE_URL
 from requester.custom_requester import CustomRequester
 
@@ -39,7 +41,7 @@ class MoviesAPI(CustomRequester):
             endpoint='/movies',
             data=data,
             headers=headers,
-            expected_status=201
+            expected_status=HTTPStatus.CREATED
         )
 
     def delete_movie(self, movie_id, token):

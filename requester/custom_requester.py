@@ -1,4 +1,5 @@
 import requests
+from http import HTTPStatus
 
 
 class CustomRequester:
@@ -17,8 +18,8 @@ class CustomRequester:
         self.session = session
         self.headers = self.base_headers.copy()
 
-    def send_request(self, method, endpoint, headers=None, data=None, params=None, expected_status=200,
-                     need_logging=True):
+    def send_request(self, method, endpoint, headers=None, data=None, params=None,
+                     expected_status=HTTPStatus.OK, need_logging=True):
         """
         Universal method for sending HTTP requests.
         :param method: HTTP method (GET, POST, PUT, DELETE, etc.).
@@ -26,7 +27,7 @@ class CustomRequester:
         :param headers: Additional headers (e.g., with authorization token).
         :param data: Request body (JSON data).
         :param params: Query parameters.
-        :param expected_status: Expected HTTP status code (default 200).
+        :param expected_status: Expected HTTP status code (default HTTPStatus.OK).
         :param need_logging: Flag to log the request/response (default True).
         :return: requests.Response object.
         """
@@ -41,7 +42,11 @@ class CustomRequester:
             self.log_request_and_response(response)
 
         if response.status_code != expected_status:
-            raise ValueError(f"Unexpected status code: {response.status_code}. Expected: {expected_status}")
+            raise ValueError(
+                f"Unexpected status code: {response.status_code} ({HTTPStatus(response.status_code).phrase}). "
+                f"Expected: {expected_status} ({expected_status.phrase})"
+            )
+
         return response
 
     def log_request_and_response(self, response):
@@ -55,6 +60,7 @@ class CustomRequester:
         print(f"Headers: {response.request.headers}")
         if response.request.body:
             print(f"Body: {response.request.body}")
+
         print("\n======================================== RESPONSE =======================================")
-        print(f"Status Code: {response.status_code}")
+        print(f"Status Code: {response.status_code} ({HTTPStatus(response.status_code).phrase})")
         print(f"Response Data: {response.text}")
