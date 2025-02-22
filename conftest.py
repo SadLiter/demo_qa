@@ -1,5 +1,6 @@
 import pytest
 import requests
+from faker import Faker
 from api.api_manager import ApiManager
 from constants import AUTH_DATA
 
@@ -30,19 +31,20 @@ def super_admin_token(api_manager):
     return response.json()["accessToken"]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def movie_data():
     """
-    Fixture for movie data.
+    Fixture for generating dynamic movie data.
     """
+    faker = Faker()
     return {
-        "name": "Test Movie8",
-        "imageUrl": "https://example.com/movie.jpg",
-        "price": 1000,
-        "description": "Test movie description",
-        "location": "MSK",
-        "published": True,
-        "genreId": 7,
+        "name": faker.catch_phrase(),
+        "imageUrl": f"https://example.com/{faker.uuid4()}.jpg",
+        "price": faker.random_int(min=100, max=5000),
+        "description": faker.text(max_nb_chars=200),
+        "location": faker.random_element(elements=("MSK", "SPB")),
+        "published": faker.boolean(chance_of_getting_true=50),
+        "genreId": faker.random_int(min=1, max=10)
     }
 
 

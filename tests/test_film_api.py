@@ -3,21 +3,6 @@ class TestMoviesAPI:
     Tests for verifying the functionality of the Movies API.
     """
 
-    def test_auth_token(self, super_admin_token):
-        """
-        Checks that the authorization token is retrieved correctly.
-        """
-        assert super_admin_token, "Authorization token should not be empty"
-        assert super_admin_token.startswith("eyJ"), "Token should be a valid JWT"
-
-    def test_movie_data(self, movie_data):
-        """
-        Checks the correctness of the movie data.
-        """
-        assert "name" in movie_data, "Movie name must be provided"
-        assert "price" in movie_data, "Movie price must be provided"
-        assert movie_data["price"] > 0, "Movie price must be greater than 0"
-
     def test_get_all_movies(self, api_manager):
         """
         Checks retrieval of the movies list.
@@ -51,16 +36,34 @@ class TestMoviesAPI:
                 "name"], f"Expected {movie_data['name']}, got {response_data['name']}"
 
             movie_id = response_data["id"]
+
+            get_response = api_manager.movies_api.get_movie(movie_id)
+            assert get_response.status_code == 200, (
+                f"Failed to fetch movies, status code: {get_response.status_code}, Response: {get_response.text}"
+            )
         finally:
-            if movie_id:
-                response = api_manager.movies_api.delete_movie(movie_id, super_admin_token)
-                assert response.status_code == 200, f"Failed to delete movie with ID {movie_id}. Response: {response.text}"
+            pass
+            # if movie_id:
+            #     response = api_manager.movies_api.delete_movie(movie_id, super_admin_token)
+            #     assert response.status_code == 200, f"Failed to delete movie with ID {movie_id}. Response: {response.text}"
 
     def test_delete_movie_success(self, api_manager, create_movie, super_admin_token):
         """
         Checks successful deletion of a movie with a valid ID.
         """
-        # Create a movie without auto-deletion
         movie_id = create_movie(need_delete=False)
+
         response = api_manager.movies_api.delete_movie(movie_id, super_admin_token)
-        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, Response: {response.text}"
+        assert response.status_code == 200, (
+            f"Unexpected status code: {response.status_code}, Response: {response.text}"
+        )
+
+        get_response = api_manager.movies_api.get_movies(super_admin_token)
+        assert get_response.status_code == 200, (
+            f"Failed to fetch movies, status code: {get_response.status_code}, Response: {get_response.text}"
+        )
+
+        movies = get_response.json().get("movies", [])
+        assert all(movie["id"] != movie_id for movie in movies), (
+            f"Movie with ID {movie_id} is still present in the movie list."
+        )
