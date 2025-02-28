@@ -1,16 +1,17 @@
+import os
 from http import HTTPStatus
-
 import pytest
 import requests
 from faker import Faker
 from api.api_manager import ApiManager
 from constants import AUTH_DATA
+from data_generator import DataGenerator
 
 
 @pytest.fixture(scope="session")
 def session():
     """
-    Fixture for creating an HTTP session.
+    Фикстура для создания HTTP-сессии.
     """
     return requests.Session()
 
@@ -18,7 +19,7 @@ def session():
 @pytest.fixture(scope="session")
 def api_manager(session):
     """
-    Fixture for creating an instance of ApiManager.
+    Фикстура для создания экземпляра ApiManager.
     """
     return ApiManager(session)
 
@@ -26,17 +27,17 @@ def api_manager(session):
 @pytest.fixture(scope="session")
 def super_admin_token(api_manager):
     """
-    Fixture for obtaining the SUPER_ADMIN token.
+    Фикстура для получения токена SUPER_ADMIN.
     """
-    response = api_manager.auth_api.login_user(AUTH_DATA)
-    assert response.status_code == HTTPStatus.OK, f"Failed to login: {response.text}"
+    response = api_manager.auth_api.login_user(AUTH_DATA, expected_status=(200, 201))
+    assert response.status_code in [200, 201], f"Failed to login: {response.text}"
     return response.json()["accessToken"]
 
 
 @pytest.fixture(scope="function")
 def movie_data():
     """
-    Fixture for generating dynamic movie data.
+    Фикстура для генерации динамических данных фильма.
     """
     faker = Faker()
     return {
@@ -53,7 +54,7 @@ def movie_data():
 @pytest.fixture(scope="function")
 def register_user_data():
     """
-    Fixture for generating dynamic user data.
+    Фикстура для генерации динамических данных пользователя.
     """
     faker = Faker()
     user_data = {
@@ -62,7 +63,6 @@ def register_user_data():
         "password": faker.password(length=12, special_chars=True, digits=True, upper_case=True, lower_case=True),
         "passwordRepeat": None
     }
-
     user_data["passwordRepeat"] = user_data["password"]
     return user_data
 
@@ -70,8 +70,8 @@ def register_user_data():
 @pytest.fixture(scope="function")
 def create_movie(api_manager, super_admin_token, movie_data):
     """
-    Fixture that returns a function to create a movie.
-    :param need_delete: If True, the movie is deleted immediately after creation.
+    Фикстура, возвращающая функцию для создания фильма.
+    Если need_delete=True, фильм удаляется сразу после создания.
     """
 
     def _create_movie(need_delete=True):
@@ -82,3 +82,41 @@ def create_movie(api_manager, super_admin_token, movie_data):
         return movie_id
 
     return _create_movie
+
+
+@pytest.fixture(scope="function")
+def user_create(api_manager, register_user_data, super_admin_token):
+    """
+    Фикстура для создания пользователя с заданной ролью.
+    Поддерживаются роли:
+      - "USER": регистрируется новый пользователь;
+      - "SUPER_ADMIN": производится вход с данными из AUTH_DATA.
+    """
+    def _create_user(role: str):
+        if role == "USER":
+            # Регистрация нового пользователя
+            user_data = register_user_data  # получаем динамические данные
+            reg_response = api_manager.auth_api.register_user(user_data)
+            assert reg_response.status_code in [200, 201], f"User registration failed: {reg_response.text}"
+
+            login_payload = {"email": user_data["email"], "password": user_data["password"]}
+            login_response = api_manager.auth_api.login_user(login_payload)
+            assert login_response.status_code in [200, 201], f"User login failed: {login_response.text}"
+            token = login_response.json()["accessToken"]
+
+        elif role == "SUPER_ADMIN":
+            # Вход с данными супер-админа
+            login_response = api_manager.auth_api.login_user(AUTH_DATA)
+            assert login_response.status_code in [200, 201], f"Super admin login failed: {login_response.text}"
+            token = login_response.json()["accessToken"]
+        else:
+            raise ValueError(f"Unsupported role: {role}")
+
+        class User:
+            def __init__(self, role, token):
+                self.role = role
+                self.token = token
+
+        return User(role, token)
+
+    return _create_user

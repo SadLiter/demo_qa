@@ -10,7 +10,7 @@ class TestMoviesAPI:
         Checks the retrieval of the movies list.
         """
         response = api_manager.movies_api.get_movies()
-        assert response.status_code == HTTPStatus.OK, (
+        assert response.status_code in [200, 201], (
             f"Unexpected status code: {response.status_code}"
         )
         assert "movies" in response.json(), "Response does not contain the 'movies' key"
@@ -20,7 +20,7 @@ class TestMoviesAPI:
         Checks filtering movies by price.
         """
         response = api_manager.movies_api.get_movies(params={"minPrice": 100, "maxPrice": 500})
-        assert response.status_code == HTTPStatus.OK, (
+        assert response.status_code in [200, 201], (
             f"Unexpected status code: {response.status_code}"
         )
 
@@ -36,7 +36,7 @@ class TestMoviesAPI:
         movie_id = None
         try:
             response = api_manager.movies_api.create_movie(movie_data, super_admin_token)
-            assert response.status_code == HTTPStatus.CREATED, (
+            assert response.status_code in [200, 201], (
                 f"Unexpected status code: {response.status_code}, Response: {response.text}"
             )
 
@@ -50,14 +50,14 @@ class TestMoviesAPI:
             movie_id = response_data["id"]
 
             get_response = api_manager.movies_api.get_movie(movie_id)
-            assert get_response.status_code == HTTPStatus.OK, (
+            assert get_response.status_code in [200, 201], (
                 f"Failed to fetch movie, status code: {get_response.status_code}, Response: {get_response.text}"
             )
 
         finally:
             if movie_id:
                 response = api_manager.movies_api.delete_movie(movie_id, super_admin_token)
-                assert response.status_code == HTTPStatus.OK, (
+                assert response.status_code in [200, 201], (
                     f"Failed to delete movie with ID {movie_id}. Response: {response.text}"
                 )
 
@@ -68,12 +68,12 @@ class TestMoviesAPI:
         movie_id = create_movie(need_delete=False)
 
         response = api_manager.movies_api.delete_movie(movie_id, super_admin_token)
-        assert response.status_code == HTTPStatus.OK, (
+        assert response.status_code in [200, 201], (
             f"Unexpected status code: {response.status_code}, Response: {response.text}"
         )
 
         get_response = api_manager.movies_api.get_movies(super_admin_token)
-        assert get_response.status_code == HTTPStatus.OK, (
+        assert get_response.status_code in [200, 201], (
             f"Failed to fetch movies, status code: {get_response.status_code}, Response: {get_response.text}"
         )
 

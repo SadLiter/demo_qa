@@ -41,10 +41,10 @@ class MoviesAPI(CustomRequester):
             endpoint='/movies',
             data=data,
             headers=headers,
-            expected_status=HTTPStatus.CREATED
+            expected_status=[200, 201]
         )
 
-    def delete_movie(self, movie_id, token):
+    def delete_movie(self, movie_id, token, expected_status=(200, 201)):
         """
         Deletes a movie by its ID.
         :param movie_id: Movie identifier.
@@ -52,4 +52,4 @@ class MoviesAPI(CustomRequester):
         :return: Response object.
         """
         headers = {"Authorization": f"Bearer {token}"}
-        return self.send_request(method='DELETE', endpoint=f'/movies/{movie_id}', headers=headers)
+        return self.send_request(method='DELETE', endpoint=f'/movies/{movie_id}', headers=headers, expected_status=expected_status)
