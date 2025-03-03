@@ -1,4 +1,5 @@
 from constants import LOGIN_ENDPOINT, REGISTER_ENDPOINT, AUTH_API_BASE_URL
+from models.base_models import LoginData
 from requester.custom_requester import CustomRequester
 from http import HTTPStatus
 
@@ -25,17 +26,21 @@ class AuthAPI(CustomRequester):
             expected_status=expected_status
         )
 
-    def login_user(self, login_data, expected_status=(200, 201)):
+    def login_user(self, login_data: LoginData, expected_status=(200, 201)):
         """
         Logs in a user.
-        :param login_data: Login credentials.
-        :param expected_status: Expected HTTP status code.
+        :param login_data: Экземпляр LoginData или словарь с данными для входа.
+        :param expected_status: Ожидаемый HTTP статус.
         :return: Response object.
         """
+        if isinstance(login_data, dict):
+            login_data = LoginData(**login_data)
+
+        data_dict = login_data.model_dump(exclude_unset=True)
         return self.send_request(
             method="POST",
             endpoint=LOGIN_ENDPOINT,
-            data=login_data,
+            data=data_dict,
             expected_status=expected_status
         )
 

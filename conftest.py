@@ -4,8 +4,9 @@ import pytest
 import requests
 from faker import Faker
 from api.api_manager import ApiManager
-from constants import AUTH_DATA
-from data_generator import DataGenerator
+from constants import AUTH_DATA, HOST, PORT, DATABASE_NAME, USERNAME_SQL, PASSWORD
+from sqlalchemy import create_engine, Column, String, Boolean, DateTime, text
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 
 @pytest.fixture(scope="session")
@@ -60,7 +61,7 @@ def register_user_data():
     user_data = {
         "email": faker.email(),
         "fullName": faker.name(),
-        "password": faker.password(length=12, special_chars=True, digits=True, upper_case=True, lower_case=True),
+        "password": faker.password(length=12, special_chars=False, digits=True, upper_case=True, lower_case=True),
         "passwordRepeat": None
     }
     user_data["passwordRepeat"] = user_data["password"]
@@ -92,6 +93,7 @@ def user_create(api_manager, register_user_data, super_admin_token):
       - "USER": регистрируется новый пользователь;
       - "SUPER_ADMIN": производится вход с данными из AUTH_DATA.
     """
+
     def _create_user(role: str):
         if role == "USER":
             # Регистрация нового пользователя
@@ -120,3 +122,18 @@ def user_create(api_manager, register_user_data, super_admin_token):
         return User(role, token)
 
     return _create_user
+
+engine = create_engine(f"postgresql+psycopg2://{USERNAME_SQL}:{PASSWORD}@{HOST}:{PORT}/{DATABASE_NAME}") # Создаем движок (engine) для подключения к базе данных
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) # Создаем фабрику сессий
+@pytest.fixture(scope="module")
+def db_session():
+    """
+    Фикстура, которая создает и возвращает сессию для работы с базой данных.
+    После завершения теста сессия автоматически закрывается.
+    """
+    # Создаем новую сессию
+    session = SessionLocal()
+    # Возвращаем сессию в тест
+    yield session
+    # Закрываем сессию после завершения теста
+    session.close()

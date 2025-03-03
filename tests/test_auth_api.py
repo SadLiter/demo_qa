@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from models.base_models import LoginData, UserDBModel
 
 
 class TestAuthAPI:
@@ -37,15 +38,16 @@ class TestAuthAPI:
         """
         Checks successful user login after registration.
         """
+        # Регистрируем пользователя
         register_response = api_manager.auth_api.register_user(register_user_data)
 
+        # Вместо словаря создаём экземпляр модели LoginData
+        login_data = LoginData(
+            email=register_user_data["email"],
+            password=register_user_data["password"]
+        )
 
-        login_user = {
-            "email": register_user_data["email"],
-            "password": register_user_data["password"]
-        }
-
-        response = api_manager.auth_api.login_user(login_user)
+        response = api_manager.auth_api.login_user(login_data)
         assert response.status_code in [200, 201], (
             f"Login failed: {response.status_code}, Response: {response.text}"
         )
@@ -53,14 +55,33 @@ class TestAuthAPI:
         response_data = response.json()
         user_data = response_data.get("user", {})
 
-        assert user_data.get("email") == login_user["email"], (
-            f"Expected email {login_user['email']}, but got {user_data.get('email')}"
+        assert user_data.get("email") == login_data.email, (
+            f"Expected email {login_data.email}, but got {user_data.get('email')}"
         )
 
     def test_invalid_login_user(self, api_manager, register_user_data):
-        login_user = {
-            "email": register_user_data["email"],
-            "password": register_user_data["password"]
-        }
-        response = api_manager.auth_api.login_user(login_user, expected_status=(400, 401))
+        # Создаем экземпляр модели LoginData для невалидного логина
+        login_data = LoginData(
+            email=register_user_data["email"],
+            password=register_user_data["password"]
+        )
+        response = api_manager.auth_api.login_user(login_data, expected_status=(400, 401))
         assert response.status_code in [400, 401]
+
+    def test_register_user_db_session(self, api_manager, register_user_data, db_session):
+        """
+        Тест на регистрацию пользователя с проверкой в базе данных.
+        """
+        # выполняем запрос на регистрацию нового пользователя
+        response = api_manager.auth_api.register_user(register_user_data)
+        register_user_response = response.json()
+
+        # Проверяем добавил ли сервис Auth нового пользователя в базу данных
+        users_from_db = db_session.query(UserDBModel).filter(UserDBModel.id == register_user_response.get('id'))
+
+        # получили обьект из бзы данных и проверили что он действительно существует в единственном экземпляре
+        assert users_from_db.count() == 1, "обьект не попал в базу данных"
+        # Достаем первый и единственный обьект из списка полученных
+        user_from_db = users_from_db.first()
+        # можем осуществить проверку всех полей в базе данных например Email
+        assert user_from_db.email == register_user_data['email'], "Email не совпадает"
